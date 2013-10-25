@@ -246,22 +246,56 @@ stats_print_atexit(void)
 }
 
 #ifdef JEMALLOC_USR2_STATS
-void 
-collect_stats( void* cbopaque, const char* info )
+void
+collect_stats(void* cbopaque, const char* info)
 {
-	int fd = *( int* )cbopaque;
-	if( fd != -1 )
-		write( fd, info, strlen( info ) );
+	int err;
+
+	err = write( *(int*)cbopaque, info, strlen(info));
+	if (err == -1)
+		malloc_write("<jemalloc>: write() failed during USR2 stats\n");
 }
 
-void 
-output_malloc_stats( int signum )
+void write_datetime_to_stats(int fd)
 {
-	static int fd = -2;
-    if( fd == -2 )
-        fd = open( "jemalloc.stats", O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH );
-	malloc_stats_print( collect_stats, &fd, NULL );
-	fsync( fd );
+	time_t time_now;
+	struct tm* tm_now;
+	char timestr[128];
+	int timestr_len, err;
+
+	time_now = time(NULL);
+	tm_now = localtime(&time_now);
+
+	if (!tm_now) {
+		malloc_write("<jemalloc>: localtime() failed during USR2 stats\n");
+		return;
+	}
+
+	timestr_len = strftime(timestr, sizeof(timestr), "\n[%Y-%m-%d %H:%M:%S]\n", tm_now);
+	if (timestr_len == 0) {
+		malloc_write("<jemalloc>: localtime() failed during USR2 stats\n");
+		return;
+	}
+
+	err = write(fd, timestr, timestr_len);
+	if (err == -1)
+		malloc_write("<jemalloc>: write() failed during USR2 stats\n");
+}
+
+void
+output_malloc_stats(int signum)
+{
+	int fd;
+
+	fd = open("jemalloc.stats", O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+	if (fd == -1) {
+		malloc_write("<jemalloc>: open(\"jemalloc.stats\") failed during USR2 stats\n");
+		return;
+	}
+
+	write_datetime_to_stats(fd);
+	malloc_stats_print(collect_stats, &fd, NULL);
+	close(fd);
 }
 #endif
 
