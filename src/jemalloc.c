@@ -1,6 +1,10 @@
 #define	JEMALLOC_C_
 #include "jemalloc/internal/jemalloc_internal.h"
 
+#ifdef JEMALLOC_USR2_STATS
+#include <signal.h>
+#endif
+
 /******************************************************************************/
 /* Data. */
 
@@ -240,6 +244,26 @@ stats_print_atexit(void)
 	}
 	je_malloc_stats_print(NULL, NULL, NULL);
 }
+
+#ifdef JEMALLOC_USR2_STATS
+void 
+collect_stats( void* cbopaque, const char* info )
+{
+	int fd = *( int* )cbopaque;
+	if( fd != -1 )
+		write( fd, info, strlen( info ) );
+}
+
+void 
+output_malloc_stats( int signum )
+{
+	static int fd = -2;
+    if( fd == -2 )
+        fd = open( "jemalloc.stats", O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH );
+	malloc_stats_print( collect_stats, &fd, NULL );
+	fsync( fd );
+}
+#endif
 
 /*
  * End miscellaneous support functions.
@@ -714,6 +738,10 @@ malloc_init_hard(void)
 				abort();
 		}
 	}
+
+#ifdef JEMALLOC_USR2_STATS
+	signal( SIGUSR2, output_malloc_stats );
+#endif	
 
 	if (base_boot()) {
 		malloc_mutex_unlock(&init_lock);

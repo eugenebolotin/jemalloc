@@ -852,6 +852,22 @@ if test "x$enable_fill" = "x1" ; then
 fi
 AC_SUBST([enable_fill])
 
+dnl Enable writing stats to jemalloc.stats file by signal USR2
+AC_ARG_ENABLE([usr2stats],
+  [AS_HELP_STRING([--enable-usr2stats], [Enable stats writing by SIGUSR2])],
+[if test "x$enable_usr2stats" = "xno" ; then
+  enable_usr2stats="0"
+else
+  enable_usr2stats="1"
+fi
+],
+[enable_usr2stats="0"]
+)
+if test "x$enable_usr2stats" = "x1" ; then
+  AC_DEFINE([JEMALLOC_USR2_STATS], [ ])
+fi
+AC_SUBST([enable_usr2stats])
+
 dnl Disable utrace(2)-based tracing by default.
 AC_ARG_ENABLE([utrace],
   [AS_HELP_STRING([--enable-utrace], [Enable utrace(2)-based tracing])],
@@ -1339,4 +1355,5 @@ AC_MSG_RESULT([munmap             : ${enable_munmap}])
 AC_MSG_RESULT([dss                : ${enable_dss}])
 AC_MSG_RESULT([lazy_lock          : ${enable_lazy_lock}])
 AC_MSG_RESULT([tls                : ${enable_tls}])
+AC_MSG_RESULT([usr2stats          : ${enable_usr2stats}])
 AC_MSG_RESULT([===============================================================================])

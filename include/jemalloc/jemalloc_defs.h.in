@@ -265,3 +265,9 @@
 
 /* sizeof(intmax_t) == 2^LG_SIZEOF_INTMAX_T. */
 #undef LG_SIZEOF_INTMAX_T
+
+/* 
+ * Enable stats writing to jemalloc.stats file by signal USR2
+ */
+#undef JEMALLOC_USR2_STATS
+
